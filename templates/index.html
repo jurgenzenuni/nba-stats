@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Player Stats</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <style>
+        .table-wrapper {
+            max-height: 500px;
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        .table-wrapper table {
+            margin-bottom: 0;
+            width: 100%;
+        }
+
+        /* Make the header stick to the top while scrolling */
+        .table-wrapper thead th {
+            position: sticky;
+            top: 0;
+            background-color: var(--bs-body-bg);
+            z-index: 1;
+        }
+
+        /* Position the theme toggle button */
+        #theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+        }
+
+        .player-image {
+            max-width: 150px;
+            border-radius: 50%;
+        }
+
+        .card {
+            margin-bottom: 20px;
+        }
+
+        /* Add these new styles for table alignment */
+        .table th {
+            text-align: left !important;
+            /* Force left alignment for headers */
+        }
+
+        .table td,
+        .table th {
+            white-space: nowrap;
+            /* Prevent text wrapping */
+            padding-left: 8px !important;
+            /* Consistent left padding */
+            padding-right: 8px !important;
+            /* Consistent right padding */
+        }
+
+        /* For career averages table specifically */
+        .table-striped>tbody>tr:nth-of-type(odd) {
+            text-align: left;
+        }
+
+        /* Add these new styles */
+        .sortable {
+            cursor: pointer;
+            position: relative;
+            padding-right: 20px !important;
+        }
+
+        .sortable:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .sortable::after {
+            content: '↕';
+            position: absolute;
+            right: 5px;
+            opacity: 0.3;
+        }
+
+        .sortable.asc::after {
+            content: '↑';
+            opacity: 1;
+        }
+
+        .sortable.desc::after {
+            content: '↓';
+            opacity: 1;
+        }
+
+        .awards-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .award-item {
+            background-color: var(--bs-primary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        /* For dark mode compatibility */
+        [data-bs-theme="dark"] .award-item {
+            background-color: var(--bs-primary);
+        }
+    </style>
+</head>
+
+<body class="bg-body text-body">
+    <button id="theme-toggle" class="btn btn-primary">Toggle Dark Mode</button>
+
+    <div class="container mt-4">
+        <h1 class="text-center">NBA Player Stats</h1>
+        <form method="POST" class="mb-4">
+            <div class="input-group">
+                <input type="text" name="player_name" placeholder="Enter player name" required class="form-control">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+
+        {% if error_message %}
+        <p class="text-danger text-center">{{ error_message }}</p>
+        {% endif %}
+
+        {% if player_details %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <h2 class="card-title mb-3">{{ player_details.Name }}</h2>
+                        {% if player_image_url %}
+                        <div class="mb-3">
+                            <img src="{{ player_image_url }}" alt="Player Image" class="player-image"
+                                onerror="this.src='https://www.nba.com/assets/logos/teams/primary/web/NBA.svg';">
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-8">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Team:</strong> {{ player_details.Team }}</p>
+                                <p class="mb-1"><strong>Position:</strong> {{ player_details.Position }}</p>
+                                <p class="mb-1"><strong>Jersey:</strong> {{ player_details.Jersey }}</p>
+                                <p class="mb-1"><strong>Experience:</strong> {{ player_details.Experience }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Height:</strong> {{ player_details.Height }}</p>
+                                <p class="mb-1"><strong>Weight:</strong> {{ player_details.Weight }}</p>
+                                <p class="mb-1"><strong>Birth Date:</strong> {{ player_details.Birth_Date }}</p>
+                                <p class="mb-1"><strong>Country:</strong> {{ player_details.Country }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if awards_list %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3 class="card-title">Career Awards:</h3>
+                <div class="awards-container">
+                    {% for award in awards_list %}
+                    <span class="award-item">{{ award }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if stats is not none and not stats.empty %}
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Regular Season Totals (By Season):</h2>
+                <div class="table-wrapper">
+                    {{ stats | safe }}
+                </div>
+            </div>
+        </div>
+
+        {% if career_totals is not none %}
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title">Career Totals:</h3>
+                <div class="table-wrapper">
+                    {{ career_totals | safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if per_game_stats is not none %}
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Regular Season Averages (By Season):</h2>
+                <div class="table-wrapper">
+                    {{ per_game_stats | safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+
+        {% if career_averages is not none %}
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title">Career Averages:</h3>
+                <div class="table-wrapper">
+                    {{ career_averages | safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if playoff_stats is not none and not playoff_stats.empty %}
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Playoff Totals (By Season):</h2>
+                <div class="table-wrapper">
+                    {{ playoff_stats | safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if playoff_per_game_stats is not none and not playoff_per_game_stats.empty %}
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Playoff Averages (By Season):</h2>
+                <div class="table-wrapper">
+                    {{ playoff_per_game_stats | safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <script>
+        const themeToggleBtn = document.getElementById("theme-toggle");
+        const rootElement = document.documentElement;
+
+        // Check for saved theme preference in localStorage
+        if (localStorage.getItem("theme") === "dark") {
+            rootElement.setAttribute("data-bs-theme", "dark");
+        }
+
+        // Toggle theme on button click
+        themeToggleBtn.addEventListener("click", () => {
+            const currentTheme = rootElement.getAttribute("data-bs-theme");
+            const newTheme = currentTheme === "light" ? "dark" : "light";
+            rootElement.setAttribute("data-bs-theme", newTheme);
+            localStorage.setItem("theme", newTheme); // Save user preference
+        });
+
+        // Store original row orders for each table
+        const originalOrders = new Map();
+
+        // Initialize original orders when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('table').forEach(table => {
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                originalOrders.set(table, rows.map(row => row.cloneNode(true)));
+            });
+        });
+
+        function sortTable(header) {
+            const table = header.closest('table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const columnIndex = header.cellIndex;
+            const isNumeric = !isNaN(rows[0].cells[columnIndex].textContent.replace('%', '').trim());
+
+            // Remove asc/desc from all headers in the table
+            table.querySelectorAll('th').forEach(th => {
+                if (th !== header) {
+                    th.classList.remove('asc', 'desc');
+                }
+            });
+
+            // Determine sort direction
+            let sortDirection = 'asc';
+            if (header.classList.contains('asc')) {
+                sortDirection = 'desc';
+                header.classList.remove('asc');
+                header.classList.add('desc');
+            } else if (header.classList.contains('desc')) {
+                sortDirection = '';
+                header.classList.remove('desc');
+                // Restore original order
+                const originalRows = originalOrders.get(table);
+                tbody.innerHTML = '';
+                originalRows.forEach(row => {
+                    tbody.appendChild(row.cloneNode(true));
+                });
+                return;
+            } else {
+                header.classList.add('asc');
+            }
+
+            // Sort the rows
+            rows.sort((a, b) => {
+                let aValue = a.cells[columnIndex].textContent.trim();
+                let bValue = b.cells[columnIndex].textContent.trim();
+
+                // Handle percentage values
+                if (aValue.includes('%')) {
+                    aValue = parseFloat(aValue.replace('%', ''));
+                    bValue = parseFloat(bValue.replace('%', ''));
+                }
+                // Handle numeric values
+                else if (isNumeric) {
+                    aValue = parseFloat(aValue);
+                    bValue = parseFloat(bValue);
+                }
+
+                if (sortDirection === 'asc') {
+                    return isNumeric ? aValue - bValue : aValue.localeCompare(bValue);
+                } else if (sortDirection === 'desc') {
+                    return isNumeric ? bValue - aValue : bValue.localeCompare(aValue);
+                }
+            });
+
+            // Reinsert rows in new order
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
